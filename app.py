@@ -1,7 +1,6 @@
 from typing import Coroutine
 from flask import Flask, jsonify, request, abort, url_for
 from flask.wrappers import Response
-import requests
 from flask_cors import CORS
 from werkzeug.exceptions import default_exceptions
 from flask_httpauth import HTTPBasicAuth
@@ -112,7 +111,7 @@ def get_opening():
 @app.route('/api/users', methods = ['POST'])
 def new_user():
     user_index = ESIndex("user")
-    user = requests.get_json()
+    user = request.get_json()
     username = user['username']
     password = user['password']
     if username is None or password is None:
