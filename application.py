@@ -28,22 +28,21 @@ class User():
 
 class Opening():
     def __init__(self, body):
-        self.id = str(uuid.uuid4())
+        self.id = str(uuid.uuid4()) # string
         self.created_at = int(time.time())
-        self.title = body["title"]
-        self.description = body["description"]
-        self.start_time = body["start_time"]
-        self.end_time = body["end_time"]
-        self.address = body["address"]
-        self.latitude = body["latitude"]
-        self.longitude = body["longitude"]
-        self.image_url = body["image_url"]
-        self.image_path = body["image_path"]
-        self.user_id = body["user_id"]
-        self.username = body["username"]
-        self.user_image = body["user_image"]
-        self.paid = body["paid"]
-        self.hourly_rate = body["hourly_rate"]
+        self.title = body["title"] # string
+        self.description = body["description"] # string
+        self.start_time = body["start_time"] # int
+        self.end_time = body["end_time"] # int
+        self.region = body["region"] # string
+        self.latitude = body["latitude"] # float
+        self.longitude = body["longitude"] # float
+        self.image_url = body["image_url"] # string
+        self.user_id = body["user_id"] # string
+        self.username = body["username"] # string
+        self.user_image_url = body["user_image_url"] # string
+        self.paid = body["paid"] # bool
+        self.hourly_rate = body["hourly_rate"] # float
 
 
 class ESIndex():
@@ -103,6 +102,16 @@ def update_user():
     if new_username is not None:
         user["_source"]["username"] = new_username
         user_index.update_doc(id, user['_source'])
+
+
+@app.route('/api/openings', methods = ['POST'])
+@auth.login_required
+def new_opening():
+    opening_index = ESIndex("opening")
+    body = request.json
+    if body is None:
+        abort(Response("Missing body"))
+    opening = Opening(body)
     
 
 @auth.verify_password
