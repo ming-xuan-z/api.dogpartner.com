@@ -1,5 +1,7 @@
+from typing import Coroutine
 from flask import Flask, jsonify, request, abort, url_for
 from flask.wrappers import Response
+from flask_cors import CORS
 from werkzeug.exceptions import default_exceptions
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,6 +15,7 @@ es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"]
 # Create the application instance
 app = Flask(__name__)
 auth = HTTPBasicAuth()
+CORS(app)
 
 
 class User():
@@ -86,22 +89,6 @@ class ESIndex():
 def index():
     return "Welcom to dogpartner!"
 
-
-@app.route('/api/users', methods = ['POST'])
-def new_user():
-    user_index = ESIndex("user")
-    username = request.json.get('username')
-    password = request.json.get('password')
-    if username is None or password is None:
-        abort(Response("Username cannot be empty")) # missing arguments
-    user = user_index.search({"query": {"term": {'username': username}}})
-    if user['hits']['total']['value'] > 0:
-        abort(Response("Username already exits")) # existing user
-    user = User(username, generate_password_hash(password))
-    user_index.put_doc(user.uid, user.__dict__)
-    return jsonify({'username': user.username}), 201, {'Location': url_for('get_user', id = user.uid, _external = True)}
-
-
 @app.route('/api/openings', methods = ['POST'])
 def new_opening():
     opening_index = ESIndex("opening")
@@ -118,6 +105,22 @@ def get_opening():
     opening_index = ESIndex("opening")
     opening = opening_index.get_doc(id)
     return jsonify(opening["_source"])
+
+
+
+@app.route('/api/users', methods = ['POST'])
+def new_user():
+    user_index = ESIndex("user")
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if username is None or password is None:
+        abort(Response("Username cannot be empty")) # missing arguments
+    user = user_index.search({"query": {"term": {'username': username}}})
+    if user['hits']['total']['value'] > 0:
+        abort(Response("Username already exits")) # existing user
+    user = User(username, generate_password_hash(password))
+    user_index.put_doc(user.uid, user.__dict__)
+    return jsonify({'username': user.username}), 201, {'Location': url_for('get_user', id = user.uid, _external = True)}
 
 
 @app.route('/api/users/<id>')
