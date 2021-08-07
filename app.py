@@ -160,13 +160,13 @@ def login_user():
     username = user['username']
     password = user['password']
     if username is None or password is None:
-        abort(Response(response="Username cannot be empty", status=401)) # missing arguments
+        return Response(response="Username cannot be empty", status=204) # missing arguments
     user = user_index.search({"query": {"term": {'username': username}}})
     if user['hits']['total']['value'] == 0:
-        abort(Response(response="Username does not exit", status=402)) # user does not exist
+        return Response(response="Username does not exit", status=202) # user does not exist
     user = user['hits']['hits'][0]["_source"]
     if check_password_hash(user["password"], password) is False:
-        abort(Response(response="Password is wrong", status=403)) # password is wrong
+        return Response(response="Password is wrong", status=203) # password is wrong
     return jsonify({'username': user["username"], "uid":user["uid"]}), 201, {'Location': url_for('get_user', id = user["uid"], _external = True)}
 
 
