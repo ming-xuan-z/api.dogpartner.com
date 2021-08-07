@@ -1,7 +1,7 @@
 from typing import Coroutine
 from flask import Flask, jsonify, request, abort, url_for
 from flask.wrappers import Response
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from werkzeug.exceptions import default_exceptions
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -15,7 +15,7 @@ es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"]
 # Create the application instance
 app = Flask(__name__)
 auth = HTTPBasicAuth()
-CORS(app)
+cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 
@@ -87,10 +87,12 @@ class ESIndex():
 
 
 @app.route('/')
+@cross_origin()
 def index():
     return "Welcom to dogpartner!"
 
 @app.route('/api/openings', methods = ['POST'])
+@cross_origin()
 def new_opening():
     opening_index = ESIndex("opening")
     body = request.get_json()
@@ -102,6 +104,7 @@ def new_opening():
 
 
 @app.route('/api/openings/<id>', methods = ['GET'])
+@cross_origin()
 def get_opening():
     opening_index = ESIndex("opening")
     opening = opening_index.get_doc(id)
@@ -110,6 +113,7 @@ def get_opening():
 
 
 @app.route('/api/users', methods = ['POST'])
+@cross_origin()
 def new_user():
     user_index = ESIndex("user")
     user = request.get_json()
@@ -126,6 +130,7 @@ def new_user():
 
 
 @app.route('/api/users/<id>')
+@cross_origin()
 def get_user(id):
     user_index = ESIndex("user")
     user = user_index.get_doc(id)
@@ -135,6 +140,7 @@ def get_user(id):
 
 
 @app.route('/api/users/name/<username>')
+@cross_origin()
 def get_user_by_name(username):
     user_index = ESIndex("user")
     username = username
@@ -146,6 +152,7 @@ def get_user_by_name(username):
 
 
 @app.route('/api/users', methods = ['PUT'])
+@cross_origin()
 @auth.login_required
 def update_user():
     username = auth.current_user()
