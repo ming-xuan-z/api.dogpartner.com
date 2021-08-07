@@ -66,6 +66,11 @@ class ESIndex():
         return res
 
 
+@app.route('/')
+def index():
+    return "Hello, World!"
+
+
 @app.route('/api/users', methods = ['POST'])
 def new_user():
     user_index = ESIndex("user")
