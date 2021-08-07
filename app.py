@@ -32,7 +32,7 @@ class User():
 
 class Opening():
     def __init__(self, body):
-        self.id = str(uuid.uuid4()) # string
+        self.oid = str(uuid.uuid4()) # string
         self.created_at = int(time.time())
         self.title = body["title"] # string
         self.description = body["description"] # string
@@ -48,7 +48,7 @@ class Opening():
         self.paid = body["paid"] # bool
         self.hourly_rate = body["hourly_rate"] # float
         self.__dict__ = {
-            "oid": self.id,
+            "oid": self.oid,
             "title": self.title,
             "description": self.description,
             "start_time": self.start_time,
@@ -98,8 +98,8 @@ def new_opening():
     if body is None:
         abort(Response("Missing body"))
     opening = Opening(body)
-    opening_index.put_doc(opening.id, opening.__dict__)
-    return jsonify({'title': opening.id}), 201, {'Location': url_for('get_opening', id = opening.id, _external = True)}
+    opening_index.put_doc(opening.oid, opening.__dict__)
+    return jsonify({'opening_id': opening.oid}), 201, {'Location': url_for('get_opening', id = opening.oid, _external = True)}
 
 
 @app.route('/api/openings/<id>', methods = ['GET'])
@@ -126,6 +126,26 @@ def new_user():
     user = User(username, generate_password_hash(password))
     user_index.put_doc(user.uid, user.__dict__)
     return jsonify({'username': user.username}), 201, {'Location': url_for('get_user', id = user.uid, _external = True)}
+
+
+@app.route('/api/login', methods = ['POST'])
+@cross_origin()
+def login_user():
+    user_index = ESIndex("user")
+    user = request.get_json()
+    username = user['username']
+    password = user['password']
+    if username is None or password is None:
+        abort(Response(response="Username cannot be empty", status=401)) # missing arguments
+    user = user_index.search({"query": {"term": {'username': username}}})
+    if user['hits']['total']['value'] == 0:
+        abort(Response(response="Username does not exit", status=402)) # user does not exist
+    user = user['hits']['hits'][0]["_source"]
+    if check_password_hash(user["password"], password) is False:
+        abort(Response(response="Password is wrong", status=403)) # password is wrong
+    return jsonify({'username': user["username"], "uid":user["uid"]}), 201, {'Location': url_for('get_user', id = user["uid"], _external = True)}
+
+
 
 
 @app.route('/api/users/<id>')
