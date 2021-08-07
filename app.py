@@ -40,13 +40,11 @@ class Opening():
         self.start_time = body["start_time"] # int
         self.end_time = body["end_time"] # int
         self.region = body["region"] # string
-        self.latitude = body["latitude"] # float
-        self.longitude = body["longitude"] # float
+        self.dog_size = body["dog_size"] # string
         self.image_url = body["image_url"] # string
         self.user_id = body["user_id"] # string
         self.username = body["username"] # string
         self.user_image_url = body["user_image_url"] # string
-        self.paid = body["paid"] # bool
         self.hourly_rate = body["hourly_rate"] # float
         self.__dict__ = {
             "oid": self.oid,
@@ -55,13 +53,11 @@ class Opening():
             "start_time": self.start_time,
             "end_time": self.end_time,
             "region": self.region,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
+            "dog_size": self.dog_size,
             "image_url": self.image_url,
             "user_id": self.user_id,
             "username": self.username,
             "user_image_url": self.user_image_url,
-            "paid": self.paid,
             "hourly_rate": self.hourly_rate
         }
 
