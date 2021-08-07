@@ -16,6 +16,7 @@ es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"]
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 class User():
