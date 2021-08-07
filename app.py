@@ -128,6 +128,56 @@ def get_agora():
     return Response(json.dumps(res),  mimetype='application/json')
 
 
+@app.route('/api/search', methods = ['POST'])
+@cross_origin()
+def search():
+    opening_index = ESIndex("opening")
+    body = request.get_json()
+    query ={
+                "size": 20,
+                "query": {
+                    "bool": {
+                    "must": [
+                        {
+                        "term": {
+                            "region": {
+                            "value": body["region"]
+                            }
+                        }
+                        },
+                        {
+                        "range": {
+                            "end_time": {
+                            "lte": body['end_time']
+                            }
+                        }
+                        },
+                        {
+                        "range": {
+                            "start_time": {
+                            "gte": body['start_time']
+                            }
+                        }
+                        },
+                        {
+                        "term": {
+                            "dog_size": {
+                            "value": body['dog_size']
+                            }
+                        }
+                        }
+                    ]
+                    }
+                }
+            }
+    res = opening_index.search(query)
+    if res["hits"]["total"] == 0:
+        return jsonify({"message":"No result"})
+    res = res["hits"]["hits"]
+    res = [elem["_source"] for elem in res]
+    return Response(json.dumps(res),  mimetype='application/json')
+
+
 
 @app.route('/api/users', methods = ['POST'])
 @cross_origin()
