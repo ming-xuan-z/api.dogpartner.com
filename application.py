@@ -1,9 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort, url_for
 from flask.wrappers import Response
+from werkzeug.exceptions import default_exceptions
 from flast_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from elasticsearch import Elasticsearch
 import uuid
+import time
 
 # Connect to Elasticsearch
 es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"])
@@ -11,6 +13,7 @@ es.cluster.health(wait_for_status='yellow', request_timeout=1)
 
 # Create the application instance
 app = Flask(__name__)
+auth = HTTPBasicAuth()
 
 
 class User():
@@ -18,6 +21,28 @@ class User():
         self._id = str(uuid.uuid4())
         self.username = username
         self.password = password
+
+class Opening():
+    def __init__(self, body):
+        self.id = str(uuid.uuid4())
+        self.created_at = int(time.time())
+        self.title = body["title"]
+        self.description = body["description"]
+        self.start_time = body["start_time"]
+        self.end_time = body["end_time"]
+        self.address = body["address"]
+        self.latitude = body["latitude"]
+        self.longitude = body["longitude"]
+        self.image_url = body["image_url"]
+        self.image_path = body["image_path"]
+        self.user_id = body["user_id"]
+        self.username = body["username"]
+        self.user_image = body["user_image"]
+        self.paid = body["paid"]
+        self.hourly_rate = body["hourly_rate"]
+
+
+
 
 class ESIndex():
     def __init__(self, index):
@@ -29,6 +54,10 @@ class ESIndex():
 
     def get_doc(self, id):
         res = es.get(index=self.index, id=id)
+        return res
+
+    def update_doc(self, id, doc):
+        res = es.index(index=self.index, id=id, body=doc)
         return res
 
     def search(self, query):
@@ -60,19 +89,32 @@ def get_user(id):
     return jsonify({'username': user['_source']['username']})
 
 
+@app.route('/api/users/<id>', methods = ['PUT'])
+@auth.login_required
+def update_user():
+    id = auth.current_user._id
+    user_index = ESIndex("user")
+    user = user_index.get_doc(id)
+    if not user:
+        abort(Response("User not found"))
+    new_username = request.json.get('username')
+    if new_username is not None:
+        user["_source"]["username"] = new_username
+        user_index.update_doc(id, user['_source'])
+    
+
 @auth.verify_password
 def verify_password(username, password):
     user_index = ESIndex("user")
     user = user_index.search({"query": {"term": {"username": username}}})
     if not user:
-        return False
+        return False # user not found
     user = user["hits"]["hits"][0]["_source"]
     if not user:
         return False
     if not check_password_hash(user["password"], password):
         return False
     return user["username"]
-
 
 if __name__ == '__main__':
     app.run(debug=True)
