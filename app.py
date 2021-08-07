@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from elasticsearch import Elasticsearch
 import uuid
 import time
+import json
 
 # Connect to Elasticsearch
 es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"], http_auth=('elastic', 'Alandofl0ve!'))
@@ -108,6 +109,29 @@ def get_opening(id):
     opening_index = ESIndex("opening")
     opening = opening_index.get_doc(id)
     return jsonify(opening["_source"])
+
+
+@app.route('/api/agora', methods = ['GET'])
+@cross_origin()
+def get_agora():
+    opening_index = ESIndex("opening")
+    query = {
+                "size": 20, 
+                "query": {
+                    "match_all": {}
+                },
+                "sort": [
+                    {
+                    "start_time": {
+                        "order": "desc"
+                    }
+                    }
+                ]
+            }
+    res = opening_index.search(query)
+    res = res["hits"]["hits"]
+    res = [elem["_source"] for elem in res]
+    return Response(json.dumps(res),  mimetype='application/json')
 
 
 
