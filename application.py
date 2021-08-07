@@ -1,15 +1,14 @@
 from flask import Flask, jsonify, request, abort, url_for
 from flask.wrappers import Response
 from werkzeug.exceptions import default_exceptions
-from flast_httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from elasticsearch import Elasticsearch
 import uuid
 import time
 
 # Connect to Elasticsearch
-es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"])
-es.cluster.health(wait_for_status='yellow', request_timeout=1)
+es = Elasticsearch(["https://es-8xbmi48v.public.tencentelasticsearch.com:9200/"], http_auth=('elastic', 'Alandofl0ve!'))
 
 # Create the application instance
 app = Flask(__name__)
@@ -18,9 +17,14 @@ auth = HTTPBasicAuth()
 
 class User():
     def __init__(self, username, password):
-        self._id = str(uuid.uuid4())
+        self.uid = str(uuid.uuid4())
         self.username = username
         self.password = password
+        self.__dict__ = {
+            "uid": self.uid,
+            "username": self.username,
+            "password": self.password
+        }
 
 class Opening():
     def __init__(self, body):
@@ -42,14 +46,12 @@ class Opening():
         self.hourly_rate = body["hourly_rate"]
 
 
-
-
 class ESIndex():
     def __init__(self, index):
         self.index = index
     
-    def put_doc(self, doc):
-        res = es.index(index=self.index, body=doc)
+    def put_doc(self, id, doc):
+        res = es.index(index=self.index, body=doc, id=id)
         return res
 
     def get_doc(self, id):
@@ -73,11 +75,11 @@ def new_user():
     if username is None or password is None:
         abort(Response("Username cannot be empty")) # missing arguments
     user = user_index.search({"query": {"term": {'username': username}}})
-    if user['hits']['total'] > 0:
+    if user['hits']['total']['value'] > 0:
         abort(Response("Username already exits")) # existing user
     user = User(username, generate_password_hash(password))
-    user_index.put_doc(user.__dict__)
-    return jsonify({'username': user.username}), 201, {'Location': url_for('get_user', id = user._id, _external = True)}
+    user_index.put_doc(user.uid, user.__dict__)
+    return jsonify({'username': user.username}), 201, {'Location': url_for('get_user', id = user.uid, _external = True)}
 
 
 @app.route('/api/users/<id>')
@@ -92,7 +94,7 @@ def get_user(id):
 @app.route('/api/users/<id>', methods = ['PUT'])
 @auth.login_required
 def update_user():
-    id = auth.current_user._id
+    id = auth.current_user.uid
     user_index = ESIndex("user")
     user = user_index.get_doc(id)
     if not user:
@@ -114,7 +116,7 @@ def verify_password(username, password):
         return False
     if not check_password_hash(user["password"], password):
         return False
-    return user["username"]
+    return user
 
 if __name__ == '__main__':
     app.run(debug=True)
