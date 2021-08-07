@@ -42,7 +42,6 @@ class Opening():
         self.region = body["region"] # string
         self.dog_size = body["dog_size"] # string
         self.image_url = body["image_url"] # string
-        self.user_id = body["user_id"] # string
         self.username = body["username"] # string
         self.user_image_url = body["user_image_url"] # string
         self.hourly_rate = body["hourly_rate"] # float
@@ -55,7 +54,6 @@ class Opening():
             "region": self.region,
             "dog_size": self.dog_size,
             "image_url": self.image_url,
-            "user_id": self.user_id,
             "username": self.username,
             "user_image_url": self.user_image_url,
             "hourly_rate": self.hourly_rate
