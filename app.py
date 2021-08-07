@@ -49,7 +49,6 @@ class Opening():
         self.hourly_rate = body["hourly_rate"] # float
         self.__dict__ = {
             "oid": self.id,
-            "created_at": self.created_at,
             "title": self.title,
             "description": self.description,
             "start_time": self.start_time,
@@ -105,7 +104,7 @@ def new_opening():
 
 @app.route('/api/openings/<id>', methods = ['GET'])
 @cross_origin()
-def get_opening():
+def get_opening(id):
     opening_index = ESIndex("opening")
     opening = opening_index.get_doc(id)
     return jsonify(opening["_source"])
