@@ -43,7 +43,23 @@ class Opening():
         self.user_image_url = body["user_image_url"] # string
         self.paid = body["paid"] # bool
         self.hourly_rate = body["hourly_rate"] # float
-
+        self.__dict__ = {
+            "oid": self.id,
+            "created_at": self.created_at,
+            "title": self.title,
+            "description": self.description,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "region": self.region,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "image_url": self.image_url,
+            "user_id": self.user_id,
+            "username": self.username,
+            "user_image_url": self.user_image_url,
+            "paid": self.paid,
+            "hourly_rate": self.hourly_rate
+        }
 
 class ESIndex():
     def __init__(self, index):
@@ -68,7 +84,7 @@ class ESIndex():
 
 @app.route('/')
 def index():
-    return "Hello, World!"
+    return "Welcom to dogpartner!"
 
 
 @app.route('/api/users', methods = ['POST'])
@@ -84,6 +100,24 @@ def new_user():
     user = User(username, generate_password_hash(password))
     user_index.put_doc(user.uid, user.__dict__)
     return jsonify({'username': user.username}), 201, {'Location': url_for('get_user', id = user.uid, _external = True)}
+
+
+@app.route('/api/openings', methods = ['POST'])
+def new_opening():
+    opening_index = ESIndex("opening")
+    body = request.json
+    if body is None:
+        abort(Response("Missing body"))
+    opening = Opening(body)
+    opening_index.put_doc(opening.id, opening.__dict__)
+    return jsonify({'title': opening.title}), 201, {'Location': url_for('get_opening', id = opening.id, _external = True)}
+
+
+@app.route('/api/openings/<id>', methods = ['GET'])
+def get_opening():
+    opening_index = ESIndex("opening")
+    opening = opening_index.get_doc(id)
+    return jsonify(opening["_source"])
 
 
 @app.route('/api/users/<id>')
@@ -104,26 +138,21 @@ def update_user():
     if not user:
         abort(Response("User not found"))
     new_username = request.json.get('username')
-    if new_username is not None:
-        user["_source"]["username"] = new_username
-        user_index.update_doc(id, user['_source'])
+    if new_username is None:
+        abort(Response("Username cannot be empty")) # missing arguments
+    old_user = user_index.search({"query": {"term": {'username': new_username}}})
+    if old_user['hits']['total']['value'] > 0:
+        abort(Response("Username already exits")) # existing user
+    user["_source"]["username"] = new_username
+    user_index.update_doc(id, user['_source'])
+    return jsonify({'username': user['_source']['username']})
 
-
-@app.route('/api/openings', methods = ['POST'])
-@auth.login_required
-def new_opening():
-    opening_index = ESIndex("opening")
-    body = request.json
-    if body is None:
-        abort(Response("Missing body"))
-    opening = Opening(body)
-    
 
 @auth.verify_password
 def verify_password(username, password):
     user_index = ESIndex("user")
     user = user_index.search({"query": {"term": {"username": username}}})
-    if not user:
+    if not user["hits"]["hits"]:
         return False # user not found
     user = user["hits"]["hits"][0]["_source"]
     if not user:
