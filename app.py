@@ -110,7 +110,7 @@ def new_opening():
         abort(Response("Missing body"))
     opening = Opening(body)
     opening_index.put_doc(opening.id, opening.__dict__)
-    return jsonify({'title': opening.title}), 201, {'Location': url_for('get_opening', id = opening.id, _external = True)}
+    return jsonify({'title': opening.id}), 201, {'Location': url_for('get_opening', id = opening.id, _external = True)}
 
 
 @app.route('/api/openings/<id>', methods = ['GET'])
@@ -129,19 +129,30 @@ def get_user(id):
     return jsonify({'username': user['_source']['username']})
 
 
-@app.route('/api/users/<id>', methods = ['PUT'])
+@app.route('/api/users/name/<username>')
+def get_user_by_name(username):
+    user_index = ESIndex("user")
+    username = username
+    user = user_index.search({"query": {"term": {'username': username}}})
+    if user['hits']['total']['value'] == 0:
+        abort(Response("User not found"))
+    user = user['hits']['hits'][0]['_source']
+    return jsonify(user)
+
+
+@app.route('/api/users', methods = ['PUT'])
 @auth.login_required
 def update_user():
-    id = auth.current_user.uid
+    username = auth.current_user()
     user_index = ESIndex("user")
-    user = user_index.get_doc(id)
-    if not user:
-        abort(Response("User not found"))
+    user = user_index.search({"query": {"term": {'username': username}}})
+    user = user['hits']['hits'][0]
+    id = user['_id']
     new_username = request.json.get('username')
     if new_username is None:
         abort(Response("Username cannot be empty")) # missing arguments
-    old_user = user_index.search({"query": {"term": {'username': new_username}}})
-    if old_user['hits']['total']['value'] > 0:
+    existing_user = user_index.search({"query": {"term": {'username': new_username}}})
+    if existing_user['hits']['total']['value'] > 0:
         abort(Response("Username already exits")) # existing user
     user["_source"]["username"] = new_username
     user_index.update_doc(id, user['_source'])
@@ -159,7 +170,7 @@ def verify_password(username, password):
         return False
     if not check_password_hash(user["password"], password):
         return False
-    return user
+    return True
 
 if __name__ == '__main__':
     app.run(debug=True)
