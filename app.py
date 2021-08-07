@@ -1,6 +1,7 @@
 from typing import Coroutine
 from flask import Flask, jsonify, request, abort, url_for
 from flask.wrappers import Response
+import requests
 from flask_cors import CORS
 from werkzeug.exceptions import default_exceptions
 from flask_httpauth import HTTPBasicAuth
@@ -92,7 +93,7 @@ def index():
 @app.route('/api/openings', methods = ['POST'])
 def new_opening():
     opening_index = ESIndex("opening")
-    body = request.json
+    body = request.get_json()
     if body is None:
         abort(Response("Missing body"))
     opening = Opening(body)
@@ -111,8 +112,9 @@ def get_opening():
 @app.route('/api/users', methods = ['POST'])
 def new_user():
     user_index = ESIndex("user")
-    username = request.json.get('username')
-    password = request.json.get('password')
+    user = requests.get_json()
+    username = user['username']
+    password = user['password']
     if username is None or password is None:
         abort(Response("Username cannot be empty")) # missing arguments
     user = user_index.search({"query": {"term": {'username': username}}})
